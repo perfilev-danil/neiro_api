@@ -43,8 +43,8 @@ ENV SERVICE_ACCOUNT_ID=${SERVICE_ACCOUNT_ID}
 ARG KEY_ID
 ENV KEY_ID=${KEY_ID}
 
-ARG PRIVATE
-ENV PRIVATE=${PRIVATE}
+ARG KEY
+ENV KEY=${KEY}
 
 # Указываем команду для запуска приложения
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]

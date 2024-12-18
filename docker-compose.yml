@@ -15,7 +15,7 @@ services:
         CHUNK_OVERLAP: ${CHUNK_OVERLAP}
         SERVICE_ACCOUNT_ID: ${SERVICE_ACCOUNT_ID}
         KEY_ID: ${KEY_ID}
-        PRIVATE: ${PRIVATE}
+        KEY: ${KEY}
     restart: always
     volumes:
       - ai_next_cache:/app/.next/cache

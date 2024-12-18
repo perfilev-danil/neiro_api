@@ -7,7 +7,7 @@ import requests
 import langchain
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.vectorstores import OpenSearchVectorSearch
-from langchain.document_loaders import TextLoader, DirectoryLoader
+from langchain.document_loaders import JSONLoader, TextLoader, DirectoryLoader
 from langchain.chains import LLMChain
 from langchain_community.llms import YandexGPT
 from langchain_community.embeddings.yandex import YandexGPTEmbeddings
@@ -17,19 +17,22 @@ from langchain.chains import StuffDocumentsChain
 import os
 from dotenv import load_dotenv
 
+import magic
+
 # Загрузка переменных из .env
 load_dotenv()
 
 # Доступ к переменным
-HOSTS = (os.getenv('HOSTS'))[2:-2]
+PRIVATE_KEY = os.getenv("KEY")
+HOSTS = (os.getenv('HOSTS'))
 PASS = os.getenv('PASS')
 CA = os.getenv('CA')
 SERVICE_ACCOUNT_ID = os.getenv('SERVICE_ACCOUNT_ID')
-PRIVATE_KEY = os.getenv("PRIVATE")
 KEY_ID = os.getenv('KEY_ID')
 SOURCE_DIR = os.getenv('SOURCE_DIR')
 CHUNK_SIZE = int(os.getenv('CHUNK_SIZE', 500)) 
 CHUNK_OVERLAP = int(os.getenv('CHUNK_OVERLAP', 100)) 
+
 
 # Подключение к OpenSearch
 conn = OpenSearch(
@@ -60,21 +63,34 @@ def get_iam_token():
 
 # Инициализация
 token = get_iam_token()
+
+"""
 loader = DirectoryLoader(
     SOURCE_DIR,
-    glob="*.txt",
+    glob="*.json",
     loader_cls=lambda file_path: TextLoader(file_path, encoding="utf-8"),
     silent_errors=True,
     show_progress=True,
     recursive=True
 )
+"""
+loader = langchain.document_loaders.DirectoryLoader(SOURCE_DIR, 
+                                                    glob="*.txt",
+                                                    silent_errors=True,
+                                                    show_progress=True, 
+                                                    recursive=True)
+
 documents = loader.load()
+
 text_splitter = RecursiveCharacterTextSplitter(
     chunk_size=CHUNK_SIZE,
     chunk_overlap=CHUNK_OVERLAP
 )
+
 docs = text_splitter.split_documents(documents)
+
 embeddings = YandexGPTEmbeddings(iam_token=token, model_uri="emb://b1gnk0qlljh1lhjqekj4/text-search-doc/latest", sleep_interval=0.1, folder_id="b1gnk0qlljh1lhjqekj4")
+
 docsearch = OpenSearchVectorSearch.from_documents(
     docs,
     embeddings,
@@ -83,7 +99,8 @@ docsearch = OpenSearchVectorSearch.from_documents(
     use_ssl=True,
     verify_certs=True,
     ca_certs=CA,
-    engine='lucene'
+    engine='lucene',
+    #bulk_size=600 
 )
 
 # Создаём цепочку
@@ -124,7 +141,10 @@ chain = StuffDocumentsChain(
 )
 
 async def query_model(query: str):
-    docs = docsearch.similarity_search(query, k=2)
-    res = chain.invoke({'query': query,
+    try:
+        docs = docsearch.similarity_search(query, k=2)
+        res = chain.invoke({'query': query,
                         'input_documents': docs})
-    return res["output_text"]
+        return res["output_text"]
+    except Exception as e:
+        print(f"Ошибка при выполнении запроса: {e}")
