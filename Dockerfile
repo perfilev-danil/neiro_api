@@ -19,5 +19,32 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Копируем остальные файлы приложения
 COPY . .
 
+ARG CA
+ENV CA=${CA}
+
+ARG PASS
+ENV PASS=${PASS}
+
+ARG HOSTS
+ENV HOSTS=${HOSTS}
+
+ARG SOURCE_DIR
+ENV SOURCE_DIR=${SOURCE_DIR}
+
+ARG CHUNK_SIZE
+ENV CHUNK_SIZE=${CHUNK_SIZE}
+
+ARG CHUNK_OVERLAP
+ENV CHUNK_OVERLAP=${CHUNK_OVERLAP}
+
+ARG SERVICE_ACCOUNT_ID
+ENV SERVICE_ACCOUNT_ID=${SERVICE_ACCOUNT_ID}
+
+ARG KEY_ID
+ENV KEY_ID=${KEY_ID}
+
+ARG PRIVATE
+ENV PRIVATE=${PRIVATE}
+
 # Указываем команду для запуска приложения
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
