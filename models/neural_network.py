@@ -15,6 +15,7 @@ from langchain_core.prompts.prompt import PromptTemplate
 from langchain.chains import StuffDocumentsChain
 
 import os
+import json
 from dotenv import load_dotenv
 
 import magic
@@ -74,13 +75,41 @@ loader = DirectoryLoader(
     recursive=True
 )
 """
+
+"""
 loader = langchain.document_loaders.DirectoryLoader(SOURCE_DIR, 
                                                     glob="*.txt",
                                                     silent_errors=True,
                                                     show_progress=True, 
                                                     recursive=True)
+"""
+
+"""
+loader = DirectoryLoader(
+    SOURCE_DIR,
+    glob="*.json",
+    loader_cls=JSONLoader,
+    silent_errors=True,
+    show_progress=True,
+    recursive=False 
+)
 
 documents = loader.load()
+"""
+
+print("Загрузка документов...")
+
+documents = []
+for filename in os.listdir(SOURCE_DIR):
+    if filename.endswith('.json'):
+        file_path = os.path.join(SOURCE_DIR, filename)
+        with open(file_path, 'r', encoding='utf-8') as file:
+            data = json.load(file)
+            json_str = json.dumps(data)
+            loader = TextLoader(file_path, encoding="utf-8")
+            documents.extend(loader.load())
+
+print(f"Загружено документов: {len(documents)}")
 
 text_splitter = RecursiveCharacterTextSplitter(
     chunk_size=CHUNK_SIZE,
@@ -91,6 +120,8 @@ docs = text_splitter.split_documents(documents)
 
 embeddings = YandexGPTEmbeddings(iam_token=token, model_uri="emb://b1gnk0qlljh1lhjqekj4/text-search-doc/latest", sleep_interval=0.1, folder_id="b1gnk0qlljh1lhjqekj4")
 
+print("Успешно!")
+
 docsearch = OpenSearchVectorSearch.from_documents(
     docs,
     embeddings,
@@ -100,7 +131,7 @@ docsearch = OpenSearchVectorSearch.from_documents(
     verify_certs=True,
     ca_certs=CA,
     engine='lucene',
-    #bulk_size=600 
+    bulk_size=10000 
 )
 
 # Создаём цепочку

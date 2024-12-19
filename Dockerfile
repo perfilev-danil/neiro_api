@@ -10,11 +10,13 @@ RUN apt-get update && apt-get install -y \
     libssl-dev \
     libffi-dev \
     python3-dev \
+    libmagic1 \
     && rm -rf /var/lib/apt/lists/*
 
 # Копируем файлы requirements.txt и устанавливаем зависимости
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+#--no-deps
+RUN pip cache purge && pip install --no-cache-dir -r requirements.txt
 
 # Копируем остальные файлы приложения
 COPY . .
@@ -48,3 +50,5 @@ ENV KEY=${KEY}
 
 # Указываем команду для запуска приложения
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+
+#COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_BUILDKIT=1
