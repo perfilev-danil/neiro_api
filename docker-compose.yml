@@ -17,18 +17,12 @@ services:
         KEY_ID: ${KEY_ID}
         KEY: ${KEY}
     restart: always
-    volumes:
-      - ai_next_cache:/app/.next/cache
     ports:
       - 8000:8000
     networks:
-      - ai-bot
+      - reports-net
     
 networks:
-  ai-bot:
-    name: ai-bot
-    external: true
-
-volumes:
-  ai_next_cache:
+  reports-net:
+    name: reports-net
     external: true
