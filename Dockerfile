@@ -52,3 +52,4 @@ ENV KEY=${KEY}
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
 
 #COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_BUILDKIT=1
+

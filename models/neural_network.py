@@ -20,6 +20,8 @@ from dotenv import load_dotenv
 
 import magic
 
+from datetime import datetime, timezone, timedelta
+
 # Загрузка переменных из .env
 load_dotenv()
 
@@ -44,6 +46,8 @@ conn = OpenSearch(
     ca_certs=CA)
 
 # Получение IAM-токена
+
+"""
 def get_iam_token():
     now = int(time.time())
     payload = {
@@ -64,17 +68,40 @@ def get_iam_token():
 
 # Инициализация
 token = get_iam_token()
+"""
 
-"""
-loader = DirectoryLoader(
-    SOURCE_DIR,
-    glob="*.json",
-    loader_cls=lambda file_path: TextLoader(file_path, encoding="utf-8"),
-    silent_errors=True,
-    show_progress=True,
-    recursive=True
-)
-"""
+token_data = {"iam_token": None, "expires_at": None}
+
+def get_iam_token():
+    global token_data
+    now = datetime.now(timezone.utc)
+    
+    # Проверяем, нужно ли обновлять токен
+    if token_data["iam_token"] is not None and token_data["expires_at"] > now:
+        return token_data["iam_token"]
+    
+    # Генерация нового токена
+    payload = {
+        'aud': 'https://iam.api.cloud.yandex.net/iam/v1/tokens',
+        'iss': SERVICE_ACCOUNT_ID,
+        'iat': int(now.timestamp()),
+        'exp': int((now + timedelta(minutes=10)).timestamp())
+    }
+    encoded_token = jwt.encode(
+        payload,
+        PRIVATE_KEY,
+        algorithm='PS256',
+        headers={'kid': KEY_ID}
+    )
+    url = 'https://iam.api.cloud.yandex.net/iam/v1/tokens'
+    response = requests.post(url,
+                             headers={'Content-Type': 'application/json'},
+                             json={'jwt': encoded_token}).json()
+    
+    token_data["iam_token"] = response['iamToken']
+    token_data["expires_at"] = now + timedelta(minutes=10)
+    
+    return token_data["iam_token"]
 
 """
 loader = langchain.document_loaders.DirectoryLoader(SOURCE_DIR, 
@@ -93,12 +120,9 @@ loader = DirectoryLoader(
     show_progress=True,
     recursive=False 
 )
-
-documents = loader.load()
 """
 
-print("Загрузка документов...")
-
+"""
 documents = []
 for filename in os.listdir(SOURCE_DIR):
     if filename.endswith('.json'):
@@ -108,6 +132,20 @@ for filename in os.listdir(SOURCE_DIR):
             json_str = json.dumps(data)
             loader = TextLoader(file_path, encoding="utf-8")
             documents.extend(loader.load())
+"""
+
+loader = DirectoryLoader(
+    SOURCE_DIR,
+    glob="*.txt",
+    loader_cls=lambda file_path: TextLoader(file_path, encoding="utf-8"),
+    silent_errors=True,
+    show_progress=True,
+    recursive=True
+)
+
+print("Загрузка документов...")
+
+documents = loader.load()
 
 print(f"Загружено документов: {len(documents)}")
 
@@ -118,13 +156,13 @@ text_splitter = RecursiveCharacterTextSplitter(
 
 docs = text_splitter.split_documents(documents)
 
-embeddings = YandexGPTEmbeddings(iam_token=token, model_uri="emb://b1gnk0qlljh1lhjqekj4/text-search-doc/latest", sleep_interval=0.1, folder_id="b1gnk0qlljh1lhjqekj4")
+#embeddings = YandexGPTEmbeddings(iam_token=token, model_uri="emb://b1gnk0qlljh1lhjqekj4/text-search-doc/latest", sleep_interval=0.1, folder_id="b1gnk0qlljh1lhjqekj4")
 
 print("Успешно!")
 
 docsearch = OpenSearchVectorSearch.from_documents(
     docs,
-    embeddings,
+    YandexGPTEmbeddings(iam_token=get_iam_token(), model_uri="emb://b1gnk0qlljh1lhjqekj4/text-search-doc/latest", sleep_interval=0.1, folder_id="b1gnk0qlljh1lhjqekj4"),
     opensearch_url='https://rc1a-36otpjvamcgfg3co.mdb.yandexcloud.net:9200',
     http_auth=("admin", PASS),
     use_ssl=True,
@@ -135,7 +173,7 @@ docsearch = OpenSearchVectorSearch.from_documents(
 )
 
 # Создаём цепочку
-llm = YandexGPT(iam_token=token,
+llm = YandexGPT(iam_token=get_iam_token(),
                 model_uri="gpt://b1gnk0qlljh1lhjqekj4/yandexgpt/latest")
 
 # Промпт для обработки документов
@@ -173,7 +211,7 @@ chain = StuffDocumentsChain(
 
 async def query_model(query: str):
     try:
-        docs = docsearch.similarity_search(query, k=2)
+        docs = docsearch.similarity_search(query, k=7)
         res = chain.invoke({'query': query,
                         'input_documents': docs})
         return res["output_text"]

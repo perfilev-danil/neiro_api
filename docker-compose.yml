@@ -6,16 +6,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      args:
-        CA: ${CA}
-        PASS: ${PASS}
-        HOSTS: ${HOSTS}
-        SOURCE_DIR: ${SOURCE_DIR}
-        CHUNK_SIZE: ${CHUNK_SIZE}
-        CHUNK_OVERLAP: ${CHUNK_OVERLAP}
-        SERVICE_ACCOUNT_ID: ${SERVICE_ACCOUNT_ID}
-        KEY_ID: ${KEY_ID}
-        KEY: ${KEY}
+    env_file:
+      - .env
     restart: always
     ports:
       - 8000:8000
