@@ -33,8 +33,8 @@ CA = os.getenv('CA')
 SERVICE_ACCOUNT_ID = os.getenv('SERVICE_ACCOUNT_ID')
 KEY_ID = os.getenv('KEY_ID')
 SOURCE_DIR = os.getenv('SOURCE_DIR')
-CHUNK_SIZE = int(os.getenv('CHUNK_SIZE', 500)) 
-CHUNK_OVERLAP = int(os.getenv('CHUNK_OVERLAP', 100)) 
+CHUNK_SIZE = int(os.getenv('CHUNK_SIZE', 1500)) 
+CHUNK_OVERLAP = int(os.getenv('CHUNK_OVERLAP', 300)) 
 
 
 # Подключение к OpenSearch
@@ -75,9 +75,11 @@ token_data = {"iam_token": None, "expires_at": None}
 def get_iam_token():
     global token_data
     now = datetime.now(timezone.utc)
+    expire = now + timedelta(minutes=10)
     
     # Проверяем, нужно ли обновлять токен
-    if token_data["iam_token"] is not None and token_data["expires_at"] > now:
+    if token_data["iam_token"] is not None and token_data["expires_at"] > expire:
+        print("Токен все еще действителен")
         return token_data["iam_token"]
     
     # Генерация нового токена
@@ -85,7 +87,7 @@ def get_iam_token():
         'aud': 'https://iam.api.cloud.yandex.net/iam/v1/tokens',
         'iss': SERVICE_ACCOUNT_ID,
         'iat': int(now.timestamp()),
-        'exp': int((now + timedelta(minutes=10)).timestamp())
+        'exp': int((now + timedelta(minutes=60)).timestamp())
     }
     encoded_token = jwt.encode(
         payload,
@@ -99,7 +101,10 @@ def get_iam_token():
                              json={'jwt': encoded_token}).json()
     
     token_data["iam_token"] = response['iamToken']
-    token_data["expires_at"] = now + timedelta(minutes=10)
+    token_data["expires_at"] = now + timedelta(minutes=60)
+
+    #print("Текущее время: ", now)
+    #print("Токен истекает в: ", token_data["expires_at"])
     
     return token_data["iam_token"]
 
@@ -143,11 +148,7 @@ loader = DirectoryLoader(
     recursive=True
 )
 
-print("Загрузка документов...")
-
 documents = loader.load()
-
-print(f"Загружено документов: {len(documents)}")
 
 text_splitter = RecursiveCharacterTextSplitter(
     chunk_size=CHUNK_SIZE,
@@ -157,8 +158,6 @@ text_splitter = RecursiveCharacterTextSplitter(
 docs = text_splitter.split_documents(documents)
 
 #embeddings = YandexGPTEmbeddings(iam_token=token, model_uri="emb://b1gnk0qlljh1lhjqekj4/text-search-doc/latest", sleep_interval=0.1, folder_id="b1gnk0qlljh1lhjqekj4")
-
-print("Успешно!")
 
 docsearch = OpenSearchVectorSearch.from_documents(
     docs,
@@ -171,10 +170,6 @@ docsearch = OpenSearchVectorSearch.from_documents(
     engine='lucene',
     bulk_size=10000 
 )
-
-# Создаём цепочку
-llm = YandexGPT(iam_token=get_iam_token(),
-                model_uri="gpt://b1gnk0qlljh1lhjqekj4/yandexgpt/latest")
 
 # Промпт для обработки документов
 document_prompt = PromptTemplate(
@@ -199,21 +194,26 @@ prompt = PromptTemplate(
     input_variables=["context", "query"]
 )
 
-# Создаём цепочку
-llm_chain = langchain.chains.LLMChain(llm=llm,
-                                      prompt=prompt)
-
-chain = StuffDocumentsChain(
-    llm_chain=llm_chain,
-    document_prompt=document_prompt,
-    document_variable_name=document_variable_name,
-)
-
 async def query_model(query: str):
     try:
         docs = docsearch.similarity_search(query, k=7)
+
+        # Создаём цепочку
+        llm = YandexGPT(iam_token=get_iam_token(),
+                        model_uri="gpt://b1gnk0qlljh1lhjqekj4/yandexgpt/latest")
+
+        llm_chain = langchain.chains.LLMChain(llm=llm,
+                                            prompt=prompt)
+
+        chain = StuffDocumentsChain(
+            llm_chain=llm_chain,
+            document_prompt=document_prompt,
+            document_variable_name=document_variable_name,
+)
+
         res = chain.invoke({'query': query,
                         'input_documents': docs})
+        
         return res["output_text"]
     except Exception as e:
         print(f"Ошибка при выполнении запроса: {e}")
