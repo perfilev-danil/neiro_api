@@ -209,7 +209,7 @@ async def query_model(query: str):
             llm_chain=llm_chain,
             document_prompt=document_prompt,
             document_variable_name=document_variable_name,
-)
+        )
 
         res = chain.invoke({'query': query,
                         'input_documents': docs})
