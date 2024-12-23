@@ -156,5 +156,6 @@ async def query_model(query: str):
         return res["output_text"]
     except Exception as e:
         print(f"Ошибка при выполнении запроса: {e}")
+        os._exit(1)
 
 asyncio.create_task(update_token_and_models())
