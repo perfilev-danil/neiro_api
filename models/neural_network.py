@@ -144,7 +144,7 @@ async def update_token_and_models():
     while True:
         global_token = get_iam_token()
         global_docsearch, global_llm_chain, global_chain = initialize_models(global_token)
-        await asyncio.sleep(21600) 
+        await asyncio.sleep(1800) 
 
 async def query_model(query: str):
     try:
