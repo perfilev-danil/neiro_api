@@ -1,9 +1,8 @@
-# api/router.py
-
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from models.neural_network import query_model
+from models.neural_network import query_model, update_token_and_models 
 
+import asyncio
 
 router = APIRouter()
 
@@ -17,3 +16,6 @@ async def query_endpoint(request: QueryRequest):
         return {"output_text": result}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+async def start_update_task():
+    asyncio.create_task(update_token_and_models())

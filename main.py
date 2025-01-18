@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from api.router import router
+from api.router import router, start_update_task
 
 app = FastAPI()
 
@@ -13,6 +13,10 @@ app.add_middleware(
 )
 
 app.include_router(router)
+
+@app.on_event("startup")
+async def on_startup():
+    await start_update_task()  # Запуск задачи обновления токенов и моделей
 
 if __name__ == "__main__":
     import uvicorn

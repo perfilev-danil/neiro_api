@@ -94,7 +94,7 @@ def get_iam_token():
         'aud': 'https://iam.api.cloud.yandex.net/iam/v1/tokens',
         'iss': SERVICE_ACCOUNT_ID,
         'iat': now,
-        'exp': now + 360
+        'exp': now + 3600
     }
     encoded_token = jwt.encode(
         payload,
@@ -142,20 +142,39 @@ global_docsearch, global_llm_chain, global_chain = initialize_models(global_toke
 async def update_token_and_models():
     global global_token, global_docsearch, global_llm_chain, global_chain
     while True:
-        global_token = get_iam_token()
-        global_docsearch, global_llm_chain, global_chain = initialize_models(global_token)
-        await asyncio.sleep(1800) 
+        try:
+            global_token = get_iam_token()
+            global_docsearch, global_llm_chain, global_chain = initialize_models(global_token)
+        except Exception as e:
+            print(f"Ошибка при обновлении токена и моделей: {e}")
+        await asyncio.sleep(21600) 
 
 async def query_model(query: str):
+    global global_token, global_docsearch, global_llm_chain, global_chain
     try:
         query = replace_e(query)
-        
-        docs = global_docsearch.similarity_search(query, k=7)
-        res = global_chain.invoke({'query': query, 'input_documents': docs})
+        try:
+            docs = global_docsearch.similarity_search(query, k=7)
+            res = global_chain.invoke({'query': query, 'input_documents': docs})
+            return res["output_text"]
+        except Exception as e:
+            print(f"Ошибка при выполнении запроса: {e}")
 
-        return res["output_text"]
+            if "token" in str(e).lower() and "expired" in str(e).lower():
+                print("Токен истек. Перезапускаю запрос...")
+                # Обновляем токен и повторно выполняем запрос
+                global_token = get_iam_token()
+                global_docsearch, global_llm_chain, global_chain = initialize_models(global_token)
+                
+                docs = global_docsearch.similarity_search(query, k=7)
+                res = global_chain.invoke({'query': query, 'input_documents': docs})
+                return res["output_text"]
+            else:
+                print(f"Неизвестная ошибка: {e}")
+                return None
+
     except Exception as e:
         print(f"Ошибка при выполнении запроса: {e}")
         os._exit(1)
 
-asyncio.create_task(update_token_and_models())
+        
