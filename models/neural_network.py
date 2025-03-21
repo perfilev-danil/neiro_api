@@ -1,5 +1,3 @@
-# models/neural_network.py
-
 from opensearchpy import OpenSearch
 import time
 import jwt
@@ -149,6 +147,8 @@ async def update_token_and_models():
             global_docsearch, global_llm_chain, global_chain = initialize_models(global_token)
         except Exception as e:
             print(f"Ошибка при обновлении токена и моделей: {e}")
+            print("Перезапуск контейнера...")
+            os._exit(1)
         await asyncio.sleep(21600) 
 
 async def query_model(query: str):
@@ -161,22 +161,19 @@ async def query_model(query: str):
             return res["output_text"]
         except Exception as e:
             print(f"Ошибка при выполнении запроса: {e}")
-
-            if "token" in str(e).lower() and "expired" in str(e).lower():
-                print("Токен истек. Перезапускаю запрос...")
-                # Обновляем токен и повторно выполняем запрос
+            print("Повторное выполнение запроса...")
+            try:
                 global_token = get_iam_token()
                 global_docsearch, global_llm_chain, global_chain = initialize_models(global_token)
-                
+
                 docs = global_docsearch.similarity_search(query, k=7)
                 res = global_chain.invoke({'query': query, 'input_documents': docs})
                 return res["output_text"]
-            else:
-                print(f"Неизвестная ошибка: {e}")
-                return None
-
-    except Exception as e:
-        print(f"Ошибка при выполнении запроса: {e}")
+            except Exception:
+                print("Ошибка при повторном выполнении запроса!")
+                raise
+    except Exception:
+        print("Критическая ошибка, перезапускаю контейнер...")
         os._exit(1)
 
         
