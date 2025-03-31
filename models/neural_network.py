@@ -20,6 +20,8 @@ import magic
 
 import asyncio
 
+from datetime import datetime
+
 # Загрузка переменных из .env
 load_dotenv()
 
@@ -33,6 +35,8 @@ KEY_ID = os.getenv('KEY_ID')
 SOURCE_DIR = os.getenv('SOURCE_DIR')
 CHUNK_SIZE = int(os.getenv('CHUNK_SIZE', 1500)) 
 CHUNK_OVERLAP = int(os.getenv('CHUNK_OVERLAP', 300)) 
+
+print(f"Время запуска: {datetime.now().strftime('%H:%M:%S')}")
 
 # Подключение к OpenSearch
 conn = OpenSearch(
