@@ -137,7 +137,7 @@ def initialize_models(token):
     docsearch = OpenSearchVectorSearch.from_documents(
         docs,
         embeddings,
-        opensearch_url='https://rc1a-36otpjvamcgfg3co.mdb.yandexcloud.net:9200',
+        opensearch_url=f'https://{HOSTS}:9200',
         http_auth=("admin", PASS),
         use_ssl=True,
         verify_certs=True,
