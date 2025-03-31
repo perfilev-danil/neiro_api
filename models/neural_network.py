@@ -43,18 +43,6 @@ conn = OpenSearch(
     ca_certs=CA
 )
 
-async def clear_all_indices():
-    try:
-        indices = conn.cat.indices(format='json')
-        for index in indices:
-            index_name = index['index']
-            conn.indices.delete(index=index_name)
-        print("Все индексы удалены успешно.")
-    except Exception as e:
-        print(f"Ошибка при удалении индексов: {e}")
-
-clear_all_indices()
-
 # Считываем документы и разбиваем на фрагменты
 loader = DirectoryLoader(
     SOURCE_DIR,
@@ -151,12 +139,24 @@ def replace_e(text: str) -> str:
 global_token = get_iam_token()
 global_docsearch, global_llm_chain, global_chain = initialize_models(global_token)
 
+def clear_all_indices():
+    try:
+        indices = conn.cat.indices(format='json')
+        for index in indices:
+            index_name = index['index']
+            conn.indices.delete(index=index_name)
+        print("Все индексы удалены успешно.")
+    except Exception as e:
+        print(f"Ошибка при удалении индексов: {e}")
+
+clear_all_indices()
+
 async def update_token_and_models():
     global global_token, global_docsearch, global_llm_chain, global_chain
     while True:
         try:
-            await clear_all_indices()
-
+            clear_all_indices()
+            
             global_token = get_iam_token()
             global_docsearch, global_llm_chain, global_chain = initialize_models(global_token)
         except Exception as e:
