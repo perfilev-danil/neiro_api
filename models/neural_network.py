@@ -43,7 +43,7 @@ conn = OpenSearch(
     ca_certs=CA
 )
 
-conn.indices.delete(index="test_index")
+#conn.indices.delete(index="test_index")
 
 def clear_all_indices():
     try:
