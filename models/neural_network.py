@@ -48,8 +48,11 @@ def clear_all_indices():
         indices = conn.cat.indices(format='json')
         for index in indices:
             index_name = index['index']
-            conn.indices.delete(index=index_name)
-        print("Все индексы удалены успешно.")
+
+            if not index_name.startswith("."):
+                conn.indices.delete(index=index_name)
+                print(f"Удалён индекс: {index_name}")
+
     except Exception as e:
         print(f"Ошибка при удалении индексов: {e}")
 
