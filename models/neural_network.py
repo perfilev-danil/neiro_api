@@ -139,6 +139,8 @@ def replace_e(text: str) -> str:
 global_token = get_iam_token()
 global_docsearch, global_llm_chain, global_chain = initialize_models(global_token)
 
+'''
+
 def clear_all_indices():
     try:
         indices = conn.cat.indices(format='json')
@@ -151,12 +153,14 @@ def clear_all_indices():
 
 clear_all_indices()
 
+'''
+
 async def update_token_and_models():
     global global_token, global_docsearch, global_llm_chain, global_chain
     while True:
         try:
-            clear_all_indices()
-            
+            #clear_all_indices()
+
             global_token = get_iam_token()
             global_docsearch, global_llm_chain, global_chain = initialize_models(global_token)
         except Exception as e:
