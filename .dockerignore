@@ -1,4 +1,2 @@
 venv
 Dockerfile
-**/__pycache__
-**/*.pyc
