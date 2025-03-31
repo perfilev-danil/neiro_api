@@ -45,22 +45,19 @@ conn = OpenSearch(
 
 conn.indices.delete(index="test_index")
 
-'''
 def clear_all_indices():
     try:
-        indices = conn.cat.indices(format='json')
-        for index in indices:
-            index_name = index['index']
-
-            if not index_name.startswith("."):
+        indices = [index['index'] for index in conn.cat.indices(format='json')]
+        
+        for index_name in indices:
+            if not index_name.startswith('.'):
                 conn.indices.delete(index=index_name)
                 print(f"Удалён индекс: {index_name}")
-
+                
     except Exception as e:
         print(f"Ошибка при удалении индексов: {e}")
 
 clear_all_indices()
-'''
 
 # Считываем документы и разбиваем на фрагменты
 loader = DirectoryLoader(
