@@ -43,8 +43,6 @@ conn = OpenSearch(
     ca_certs=CA
 )
 
-#conn.indices.delete(index="test_index")
-
 '''
 
 def clear_all_indices():
@@ -171,7 +169,7 @@ async def update_token_and_models():
             print(f"Ошибка при обновлении токена и моделей: {e}")
             print("Перезапуск контейнера...")
             os._exit(1)
-        await asyncio.sleep(21600) 
+        await asyncio.sleep(3000) 
 
 async def query_model(query: str):
     global global_token, global_docsearch, global_llm_chain, global_chain
