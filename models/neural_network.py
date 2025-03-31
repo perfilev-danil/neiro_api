@@ -14,6 +14,7 @@ from langchain.chains import StuffDocumentsChain
 
 import os
 import json
+
 from dotenv import load_dotenv
 
 import magic
@@ -23,7 +24,7 @@ import asyncio
 from datetime import datetime
 
 # Загрузка переменных из .env
-load_dotenv()
+load_dotenv(override=True)
 
 # Доступ к переменным
 PRIVATE_KEY = os.getenv("KEY")
