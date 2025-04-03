@@ -59,7 +59,8 @@ def clear_all_indices():
                 
     except Exception as e:
         print(f"Ошибка при удалении индексов: {e}")
-
+        os._exit(1)
+        
 clear_all_indices()
 
 # Считываем документы и разбиваем на фрагменты
@@ -162,10 +163,9 @@ async def update_token_and_models():
     global global_token, global_docsearch, global_llm_chain, global_chain
     while True:
         try:
-            #clear_all_indices()
-
             global_token = get_iam_token()
             global_docsearch, global_llm_chain, global_chain = initialize_models(global_token)
+            print("Токен обновлён")
         except Exception as e:
             print(f"Ошибка при обновлении токена и моделей: {e}")
             print("Перезапуск контейнера...")
@@ -177,6 +177,7 @@ async def query_model(query: str):
     try:
         query = replace_e(query)
         try:
+            print("Обрабатываю запрос...")
             docs = global_docsearch.similarity_search(query, k=7)
             res = global_chain.invoke({'query': query, 'input_documents': docs})
             return res["output_text"]
