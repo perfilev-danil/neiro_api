@@ -15,6 +15,7 @@ async def query_endpoint(request: QueryRequest):
         result = await query_model(request.query)
         return {"output_text": result}
     except Exception as e:
+        print("Ошибка:", str(e))
         raise HTTPException(status_code=500, detail=str(e))
 
 async def start_update_task():
